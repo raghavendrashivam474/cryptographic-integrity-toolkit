@@ -23,6 +23,10 @@ from integrity_toolkit.integrity.models import (
     VerificationReport,
     VerificationStatus,
 )
+from integrity_toolkit.integrity.traversal import (
+    discover_files,
+    normalize_posix_path,
+)
 
 __all__ = [
     "IntegrityError",
@@ -42,4 +46,6 @@ __all__ = [
     "VerificationReport",
     "VerificationStatus",
     "fingerprint_file",
+    "discover_files",
+    "normalize_posix_path",
 ]

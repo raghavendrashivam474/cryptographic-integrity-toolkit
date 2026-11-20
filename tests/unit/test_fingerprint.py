@@ -102,7 +102,6 @@ def test_fingerprint_race_condition_modification_detected(tmp_path):
 
     real_stat = f.stat()
 
-    # Create fake second stat call with updated size/mtime
     fake_stat_after = type(real_stat)(
         (real_stat.st_mode, real_stat.st_ino, real_stat.st_dev, real_stat.st_nlink,
          real_stat.st_uid, real_stat.st_gid, real_stat.st_size + 10,
@@ -110,7 +109,7 @@ def test_fingerprint_race_condition_modification_detected(tmp_path):
     )
 
     call_count = 0
-    def mock_stat(self_path):
+    def mock_stat(*args, **kwargs):
         nonlocal call_count
         call_count += 1
         if call_count == 1:
