@@ -1,0 +1,4 @@
+# Development and Testing Dependencies
+pytest>=8.0.0
+setuptools>=68.0.0
+wheel>=0.42.0
