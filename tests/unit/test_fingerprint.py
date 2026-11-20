@@ -44,7 +44,6 @@ def test_fingerprint_binary_file(tmp_path):
 
 def test_fingerprint_large_file(tmp_path):
     f = tmp_path / "large.bin"
-    # Write 200 KB chunked file
     data = b"X" * (200 * 1024)
     f.write_bytes(data)
 
@@ -101,22 +100,22 @@ def test_fingerprint_race_condition_modification_detected(tmp_path):
     f.write_bytes(b"initial state")
 
     real_stat = f.stat()
-
     fake_stat_after = type(real_stat)(
         (real_stat.st_mode, real_stat.st_ino, real_stat.st_dev, real_stat.st_nlink,
          real_stat.st_uid, real_stat.st_gid, real_stat.st_size + 10,
          real_stat.st_atime, real_stat.st_mtime + 5, real_stat.st_ctime)
     )
 
-    call_count = 0
-    def mock_stat(*args, **kwargs):
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return real_stat
-        return fake_stat_after
+    # Use hash_stream execution as the trigger for stat change
+    original_hash_stream = None
 
-    with patch("pathlib.Path.stat", side_effect=mock_stat):
+    def mock_hash_stream(*args, **kwargs):
+        # Stat changes while streaming completes
+        nonlocal fake_stat_after
+        f.write_bytes(b"modified state after open")
+        return "1234567890abcdef" * 4
+
+    with patch("integrity_toolkit.integrity.fingerprint.hash_stream", side_effect=mock_hash_stream):
         with pytest.raises(FingerprintError, match="modified during hashing"):
             fingerprint_file(f)
 

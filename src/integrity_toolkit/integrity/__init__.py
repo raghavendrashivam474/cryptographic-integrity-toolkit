@@ -12,6 +12,13 @@ from integrity_toolkit.integrity.fingerprint import (
     DEFAULT_CHUNK_SIZE,
     fingerprint_file,
 )
+from integrity_toolkit.integrity.manifest import (
+    create_manifest,
+    load_manifest,
+    save_manifest,
+    validate_manifest,
+    validate_manifest_entry_path,
+)
 from integrity_toolkit.integrity.models import (
     DEFAULT_ALGORITHM,
     MANIFEST_FORMAT,
@@ -48,4 +55,9 @@ __all__ = [
     "fingerprint_file",
     "discover_files",
     "normalize_posix_path",
+    "create_manifest",
+    "save_manifest",
+    "load_manifest",
+    "validate_manifest",
+    "validate_manifest_entry_path",
 ]
