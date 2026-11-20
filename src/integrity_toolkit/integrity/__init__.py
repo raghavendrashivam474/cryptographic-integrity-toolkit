@@ -8,6 +8,10 @@ from integrity_toolkit.integrity.exceptions import (
     ManifestVersionError,
     UnsafePathError,
 )
+from integrity_toolkit.integrity.fingerprint import (
+    DEFAULT_CHUNK_SIZE,
+    fingerprint_file,
+)
 from integrity_toolkit.integrity.models import (
     DEFAULT_ALGORITHM,
     MANIFEST_FORMAT,
@@ -30,10 +34,12 @@ __all__ = [
     "MANIFEST_FORMAT",
     "MANIFEST_VERSION",
     "DEFAULT_ALGORITHM",
+    "DEFAULT_CHUNK_SIZE",
     "FileFingerprint",
     "ManifestEntry",
     "IntegrityManifest",
     "FileVerificationResult",
     "VerificationReport",
     "VerificationStatus",
+    "fingerprint_file",
 ]
