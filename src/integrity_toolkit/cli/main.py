@@ -7,7 +7,6 @@ from pathlib import Path
 import integrity_toolkit
 from integrity_toolkit.crypto import (
     UnsupportedAlgorithmError,
-    get_supported_algorithms,
     hash_text,
 )
 from integrity_toolkit.integrity import (
@@ -70,7 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Construct and configure the command-line argument parser."""
     parser = argparse.ArgumentParser(
         prog="integrity",
-        description="Cryptographic File Integrity and Merkle Proof Toolkit",
+        description="Cryptographic Integrity Toolkit",
     )
     parser.add_argument(
         "--version",
@@ -91,7 +90,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--algorithm",
         type=str,
         default=DEFAULT_ALGORITHM,
-        choices=get_supported_algorithms(),
         help="Hash algorithm to use (default: sha256)",
     )
 
@@ -144,7 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-# Backward-compatible alias for existing CLI unit tests (Sprint 01 compatibility)
+# Alias for Sprint 01 test compatibility
 create_parser = build_parser
 
 
@@ -159,13 +157,28 @@ def main(args: list[str] | None = None) -> int:
 
     if parsed_args.command == "hash":
         if not parsed_args.text:
-            print("Error: --text argument is required for 'hash' command.", file=sys.stderr)
-            return 2
-        digest = hash_text(parsed_args.text, algorithm=parsed_args.algorithm)
-        print(f"Algorithm : {parsed_args.algorithm.upper()}")
-        print(f"Input     : {parsed_args.text}")
-        print(f"Digest    : {digest}")
-        return 0
+            if sys.stdin.isatty():
+                print(
+                    "Error: Either --text must be provided or data must be piped via stdin.",
+                    file=sys.stderr,
+                )
+                return 1
+            text_input = sys.stdin.read()
+        else:
+            text_input = parsed_args.text
+
+        try:
+            digest = hash_text(text_input, algorithm=parsed_args.algorithm)
+            print(f"Algorithm : {parsed_args.algorithm.upper()}")
+            print(f"Input     : {text_input}")
+            print(f"Digest    : {digest}")
+            return 0
+        except UnsupportedAlgorithmError as err:
+            print(f"Error: {err}", file=sys.stderr)
+            return 1
+        except Exception as err:
+            print(f"Error: {err}", file=sys.stderr)
+            return 1
 
     if parsed_args.command == "fingerprint":
         target_path = Path(parsed_args.target)
