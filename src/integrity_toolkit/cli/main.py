@@ -144,6 +144,10 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# Backward-compatible alias for existing CLI unit tests (Sprint 01 compatibility)
+create_parser = build_parser
+
+
 def main(args: list[str] | None = None) -> int:
     """CLI entry point. Returns exit code integer."""
     parser = build_parser()
