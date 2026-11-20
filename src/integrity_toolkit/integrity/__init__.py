@@ -34,6 +34,7 @@ from integrity_toolkit.integrity.traversal import (
     discover_files,
     normalize_posix_path,
 )
+from integrity_toolkit.integrity.verifier import verify_manifest
 
 __all__ = [
     "IntegrityError",
@@ -60,4 +61,5 @@ __all__ = [
     "load_manifest",
     "validate_manifest",
     "validate_manifest_entry_path",
+    "verify_manifest",
 ]
