@@ -1,7 +1,7 @@
 # Development Environment Setup Guide
 
 **Project:** Cryptographic Integrity Toolkit  
-**Sprint ID:** CL-01 / S00  
+**Sprint ID:** CL-00 / S00  
 
 ---
 

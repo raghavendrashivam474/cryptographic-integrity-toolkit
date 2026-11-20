@@ -1,7 +1,7 @@
 # Architecture Overview
 
 **Project:** Cryptographic Integrity Toolkit  
-**Sprint ID:** CL-01 / S00  
+**Sprint ID:** CL-00 / S00  
 **Target Release:** `v0.0.1` — Development Foundation  
 
 ---

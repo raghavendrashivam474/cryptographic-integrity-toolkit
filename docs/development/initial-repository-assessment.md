@@ -1,6 +1,6 @@
 # Initial Repository Assessment
 
-**Sprint ID:** CL-01 / S00  
+**Sprint ID:** CL-00 / S00  
 **Project:** Cryptographic Integrity Toolkit  
 **Date:** 2026-11-21 00:17:03  
 **Author:** Engineering Team  
