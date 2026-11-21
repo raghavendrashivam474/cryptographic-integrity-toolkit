@@ -102,3 +102,26 @@ cryptographic-integrity-toolkit/
 ├── scripts/             # Maintenance and development scripts
 └── pyproject.toml       # Build system and metadata
 ```
+## Unified CLI Usage (`cit`)
+
+The toolkit provides a single unified executable `cit` (or `integrity` alias):
+
+```bash
+# Stream hash a file
+cit hash --file report.pdf --algorithm sha256
+
+# Create directory integrity manifest
+cit fingerprint ./dataset -o manifest.json
+
+# Verify directory against manifest
+cit verify ./dataset -m manifest.json
+
+# Compute Merkle tree root
+cit merkle root manifest.json
+
+# Generate inclusion proof for a file
+cit merkle prove manifest.json report.pdf -o proof.json
+
+# Verify inclusion proof against trusted root
+cit merkle verify-proof proof.json --data ./dataset/report.pdf --root <TRUSTED_ROOT>
+```
