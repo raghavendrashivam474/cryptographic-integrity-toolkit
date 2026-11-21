@@ -13,6 +13,7 @@ from integrity_toolkit.merkle.hashing import hash_internal, hash_leaf
 from integrity_toolkit.merkle.models import MerkleProof, MerkleProofStep, MerkleTree, ProofOperation
 from integrity_toolkit.merkle.proofs import generate_inclusion_proof
 from integrity_toolkit.merkle.tree import build_merkle_tree
+from integrity_toolkit.merkle.verification import verify_inclusion_proof
 
 __all__ = [
     "MerkleError",
@@ -28,6 +29,7 @@ __all__ = [
     "hash_internal",
     "build_merkle_tree",
     "generate_inclusion_proof",
+    "verify_inclusion_proof",
     "serialize_manifest_entry",
     "build_merkle_tree_from_manifest",
 ]
