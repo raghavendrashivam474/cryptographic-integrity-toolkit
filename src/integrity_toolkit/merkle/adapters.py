@@ -1,40 +1,21 @@
-﻿"""File-manifest integration adapter for constructing Merkle trees from integrity manifests."""
+﻿"""File-manifest integration adapter for constructing Merkle trees and generating manifest inclusion proofs."""
 
 import struct
-
 from integrity_toolkit.crypto import get_algorithm_spec
 from integrity_toolkit.integrity.models import IntegrityManifest, ManifestEntry
 from integrity_toolkit.integrity.traversal import normalize_posix_path
-from integrity_toolkit.merkle.exceptions import AdapterError
-from integrity_toolkit.merkle.models import MerkleTree
+from integrity_toolkit.merkle.exceptions import AdapterError, InvalidProofError
+from integrity_toolkit.merkle.models import MerkleProof, MerkleTree
+from integrity_toolkit.merkle.proofs import generate_inclusion_proof
 from integrity_toolkit.merkle.tree import build_merkle_tree
+from integrity_toolkit.merkle.verification import verify_inclusion_proof
 
 # Binary format identifier (S03-ADR-001 / S03-merkle-format.md)
 FORMAT_MAGIC = b"CIT-MLF1"
 
 
 def serialize_manifest_entry(entry: ManifestEntry, algorithm: str) -> bytes:
-    """Encode a ManifestEntry into canonical binary format CIT-MLF1.
-
-    Binary Format Layout:
-    - FORMAT_MAGIC: 8 bytes ASCII ("CIT-MLF1")
-    - PATH_LEN: 4 bytes uint32 big-endian (>I)
-    - PATH_BYTES: UTF-8 encoded relative POSIX path
-    - ALGO_LEN: 2 bytes uint16 big-endian (>H)
-    - ALGO_BYTES: UTF-8 encoded canonical algorithm identifier
-    - FILE_SIZE: 8 bytes uint64 big-endian (>Q)
-    - DIGEST_BYTES: Raw digest bytes from hex string
-
-    Args:
-        entry: Validated ManifestEntry instance.
-        algorithm: Registered algorithm identifier (e.g. 'sha256').
-
-    Returns:
-        Canonical byte payload for Merkle leaf construction.
-
-    Raises:
-        AdapterError: If path, size, or digest string is invalid.
-    """
+    """Encode a ManifestEntry into canonical binary format CIT-MLF1."""
     if not isinstance(entry, ManifestEntry):
         raise AdapterError(f"Expected ManifestEntry object, got {type(entry).__name__}")
 
@@ -76,33 +57,82 @@ def serialize_manifest_entry(entry: ManifestEntry, algorithm: str) -> bytes:
 
 
 def build_merkle_tree_from_manifest(manifest: IntegrityManifest) -> MerkleTree:
-    """Construct a MerkleTree from an IntegrityManifest.
+    """Construct a MerkleTree from an IntegrityManifest."""
+    if not isinstance(manifest, IntegrityManifest):
+        raise AdapterError(
+            f"Expected IntegrityManifest instance, got {type(manifest).__name__}"
+        )
 
-    Manifest entries are deterministically ordered by normalized path
-    before serialization to guarantee identical Merkle roots for equivalent
-    manifests regardless of initial entry order.
+    sorted_entries = sorted(manifest.entries, key=lambda e: normalize_posix_path(e.path))
+    leaf_payloads = [
+        serialize_manifest_entry(entry, manifest.algorithm)
+        for entry in sorted_entries
+    ]
+    return build_merkle_tree(leaf_payloads, algorithm=manifest.algorithm)
+
+
+def generate_manifest_inclusion_proof(
+    manifest: IntegrityManifest,
+    relative_path: str,
+) -> MerkleProof:
+    """Generate a Merkle inclusion proof for a file entry within an IntegrityManifest.
 
     Args:
         manifest: IntegrityManifest instance.
+        relative_path: Relative file path to prove membership for.
 
     Returns:
-        Constructed MerkleTree instance.
+        MerkleProof object.
 
     Raises:
-        AdapterError: If manifest parameter is invalid.
-        EmptyTreeError: If manifest entries list is empty.
+        AdapterError: If manifest is invalid or target path is not found in manifest.
     """
     if not isinstance(manifest, IntegrityManifest):
         raise AdapterError(
             f"Expected IntegrityManifest instance, got {type(manifest).__name__}"
         )
 
-    # Sort entries deterministically by normalized POSIX path
+    try:
+        norm_target_path = normalize_posix_path(relative_path)
+    except Exception as err:
+        raise AdapterError(f"Invalid relative_path '{relative_path}': {err}") from err
+
     sorted_entries = sorted(manifest.entries, key=lambda e: normalize_posix_path(e.path))
 
-    leaf_payloads = [
-        serialize_manifest_entry(entry, manifest.algorithm)
-        for entry in sorted_entries
-    ]
+    leaf_index = -1
+    for idx, entry in enumerate(sorted_entries):
+        if normalize_posix_path(entry.path) == norm_target_path:
+            leaf_index = idx
+            break
 
-    return build_merkle_tree(leaf_payloads, algorithm=manifest.algorithm)
+    if leaf_index == -1:
+        raise AdapterError(f"File path '{relative_path}' not found in manifest.")
+
+    tree = build_merkle_tree_from_manifest(manifest)
+    return generate_inclusion_proof(tree, leaf_index)
+
+
+def verify_manifest_inclusion_proof(
+    entry: ManifestEntry,
+    proof: MerkleProof,
+    expected_root: str,
+) -> bool:
+    """Verify a manifest entry inclusion proof against a trusted Merkle root.
+
+    Args:
+        entry: ManifestEntry instance.
+        proof: MerkleProof instance.
+        expected_root: Trusted Merkle root hex string.
+
+    Returns:
+        True if valid and matches expected_root, False otherwise.
+
+    Raises:
+        AdapterError: If entry object is invalid.
+        InvalidProofError: If proof or root format is structurally invalid.
+    """
+    if not isinstance(entry, ManifestEntry):
+        raise AdapterError(f"Expected ManifestEntry object, got {type(entry).__name__}")
+
+    leaf_payload = serialize_manifest_entry(entry, algorithm=proof.algorithm)
+    return verify_inclusion_proof(leaf_payload, proof, expected_root)

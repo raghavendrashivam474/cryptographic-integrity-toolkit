@@ -32,12 +32,19 @@ __all__ = [
     "verify_inclusion_proof",
     "serialize_manifest_entry",
     "build_merkle_tree_from_manifest",
+    "generate_manifest_inclusion_proof",
+    "verify_manifest_inclusion_proof",
 ]
 
 
 def __getattr__(name: str) -> Any:
     """Lazy-load manifest adapter exports on-demand to maintain strict package boundaries."""
-    if name in ("serialize_manifest_entry", "build_merkle_tree_from_manifest"):
+    if name in (
+        "serialize_manifest_entry",
+        "build_merkle_tree_from_manifest",
+        "generate_manifest_inclusion_proof",
+        "verify_manifest_inclusion_proof",
+    ):
         import integrity_toolkit.merkle.adapters as adapters
 
         return getattr(adapters, name)
