@@ -1,9 +1,7 @@
 ﻿"""Merkle Tree Construction Subsystem."""
 
-from integrity_toolkit.merkle.adapters import (
-    build_merkle_tree_from_manifest,
-    serialize_manifest_entry,
-)
+from typing import Any
+
 from integrity_toolkit.merkle.exceptions import (
     AdapterError,
     EmptyTreeError,
@@ -26,3 +24,11 @@ __all__ = [
     "serialize_manifest_entry",
     "build_merkle_tree_from_manifest",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy-load manifest adapter exports on-demand to maintain strict package boundaries."""
+    if name in ("serialize_manifest_entry", "build_merkle_tree_from_manifest"):
+        import integrity_toolkit.merkle.adapters as adapters
+        return getattr(adapters, name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
