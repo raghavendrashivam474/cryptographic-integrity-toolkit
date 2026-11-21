@@ -1,99 +1,47 @@
-﻿"""Command-line interface entry point for the Cryptographic Integrity Toolkit."""
-
+from pathlib import Path
+"""Unified command-line interface entry point for Cryptographic Integrity Toolkit."""
 import argparse
 import sys
-from pathlib import Path
-
 import integrity_toolkit
-from integrity_toolkit.crypto import (
-    UnsupportedAlgorithmError,
-    hash_text,
-)
-from integrity_toolkit.integrity import (
-    DEFAULT_ALGORITHM,
-    FileAccessError,
-    IntegrityError,
-    InvalidManifestError,
-    UnsafePathError,
-    create_manifest,
-    fingerprint_file,
-    save_manifest,
-    verify_manifest,
-)
+from integrity_toolkit.integrity import DEFAULT_ALGORITHM
+from integrity_toolkit.cli.handlers.hash_cmd import handle_hash
+from integrity_toolkit.cli.handlers.fingerprint_cmd import handle_fingerprint
+from integrity_toolkit.cli.handlers.verify_cmd import handle_verify
+from integrity_toolkit.cli.handlers.merkle_cmd import handle_merkle
 
-
-def _format_fingerprint_output(fp) -> str:
-    """Format single file fingerprint output for display."""
-    return f"""========================================
-       FILE FINGERPRINT
-========================================
-
-File       : {fp.path}
-Size       : {fp.size} bytes
-Algorithm  : {fp.algorithm.upper()}
-
-Fingerprint:
-{fp.digest}
-
-Status     : SUCCESS
-========================================="""
-
-
-def _format_verification_output(report) -> str:
-    """Format verification report output for display."""
-    status_str = "SUCCESS" if report.is_success else "FAILED"
-    lines = [
-        "========================================",
-        "        INTEGRITY VERIFICATION",
-        "========================================",
-        "",
-        f"Manifest : {report.manifest_path}",
-        f"Algorithm: {report.algorithm.upper()}",
-        "",
-        f"Total files : {report.total}",
-        "",
-        f"MATCH       : {report.matched}",
-        f"MODIFIED    : {report.modified}",
-        f"MISSING     : {report.missing}",
-        f"UNEXPECTED  : {report.unexpected}",
-        f"ERROR       : {report.error}",
-        "",
-        f"Overall Status: {status_str}",
-        "",
-        "========================================",
-    ]
-    return "\n".join(lines)
-
-
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(prog: str = "integrity") -> argparse.ArgumentParser:
     """Construct and configure the command-line argument parser."""
     parser = argparse.ArgumentParser(
-        prog="integrity",
+        prog=prog,
         description="Cryptographic Integrity Toolkit",
     )
     parser.add_argument(
         "--version",
         action="version",
-        version=f"integrity {integrity_toolkit.__version__}",
+        version=f"%(prog)s {integrity_toolkit.__version__}",
     )
-
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
-    # Command: hash (Sprint 01 baseline)
-    hash_parser = subparsers.add_parser("hash", help="Compute hash of text or file input")
+    # Command: hash
+    hash_parser = subparsers.add_parser("hash", help="Compute hash of text, file, or stdin input")
     hash_parser.add_argument(
         "--text",
         type=str,
         help="Text string to compute hash for",
     )
     hash_parser.add_argument(
+        "--file",
+        type=str,
+        help="Path to file to compute stream hash for",
+    )
+    hash_parser.add_argument(
         "--algorithm",
         type=str,
         default=DEFAULT_ALGORITHM,
-        help="Hash algorithm to use (default: sha256)",
+        help=f"Hash algorithm to use (default: {DEFAULT_ALGORITHM})",
     )
 
-    # Command: fingerprint (Sprint 02)
+    # Command: fingerprint
     fp_parser = subparsers.add_parser(
         "fingerprint",
         help="Fingerprint a file or generate an integrity manifest for a directory",
@@ -116,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output manifest destination path (required when target is a directory)",
     )
 
-    # Command: verify (Sprint 02)
+    # Command: verify
     verify_parser = subparsers.add_parser(
         "verify",
         help="Verify files against an integrity manifest",
@@ -139,16 +87,42 @@ def build_parser() -> argparse.ArgumentParser:
         help="Ignore files present on disk that are not in the manifest",
     )
 
+    # Command group: merkle
+    merkle_parser = subparsers.add_parser(
+        "merkle",
+        help="Merkle tree construction, root computation, proof generation and verification",
+    )
+    merkle_subparsers = merkle_parser.add_subparsers(dest="merkle_command", help="Merkle operations")
+
+    # Subcommand: merkle build
+    mb_parser = merkle_subparsers.add_parser("build", help="Build a Merkle tree from an integrity manifest")
+    mb_parser.add_argument("manifest", type=str, help="Path to manifest JSON file")
+    mb_parser.add_argument("-o", "--output", type=str, help="Optional output path for tree summary JSON")
+
+    # Subcommand: merkle root
+    mr_parser = merkle_subparsers.add_parser("root", help="Compute and display Merkle root hash from manifest")
+    mr_parser.add_argument("manifest", type=str, help="Path to manifest JSON file")
+
+    # Subcommand: merkle prove
+    mp_parser = merkle_subparsers.add_parser("prove", help="Generate an inclusion proof for a file entry")
+    mp_parser.add_argument("manifest", type=str, help="Path to manifest JSON file")
+    mp_parser.add_argument("relative_path", type=str, help="Relative path of file in manifest")
+    mp_parser.add_argument("-o", "--output", type=str, required=True, help="Output destination for proof JSON")
+
+    # Subcommand: merkle verify-proof
+    mvp_parser = merkle_subparsers.add_parser("verify-proof", help="Verify an inclusion proof against a trusted root")
+    mvp_parser.add_argument("proof", type=str, help="Path to proof JSON file")
+    mvp_parser.add_argument("--data", type=str, required=True, help="Path to actual target file on disk")
+    mvp_parser.add_argument("--root", type=str, required=True, help="Trusted Merkle root hash")
+
     return parser
 
-
-# Alias for Sprint 01 test compatibility
 create_parser = build_parser
-
 
 def main(args: list[str] | None = None) -> int:
     """CLI entry point. Returns exit code integer."""
-    parser = build_parser()
+    prog = "cit" if (sys.argv and Path(sys.argv[0]).stem in ("cit", "cit.exe")) else "integrity"
+    parser = build_parser(prog=prog)
     parsed_args = parser.parse_args(args)
 
     if not parsed_args.command:
@@ -156,90 +130,15 @@ def main(args: list[str] | None = None) -> int:
         return 0
 
     if parsed_args.command == "hash":
-        if not parsed_args.text:
-            if sys.stdin.isatty():
-                print(
-                    "Error: Either --text must be provided or data must be piped via stdin.",
-                    file=sys.stderr,
-                )
-                return 1
-            text_input = sys.stdin.read()
-        else:
-            text_input = parsed_args.text
-
-        try:
-            digest = hash_text(text_input, algorithm=parsed_args.algorithm)
-            print(f"Algorithm : {parsed_args.algorithm.upper()}")
-            print(f"Input     : {text_input}")
-            print(f"Digest    : {digest}")
-            return 0
-        except UnsupportedAlgorithmError as err:
-            print(f"Error: {err}", file=sys.stderr)
-            return 1
-        except Exception as err:
-            print(f"Error: {err}", file=sys.stderr)
-            return 1
-
-    if parsed_args.command == "fingerprint":
-        target_path = Path(parsed_args.target)
-        if not target_path.exists():
-            print(f"Error: Target path not found: {parsed_args.target}", file=sys.stderr)
-            return 3
-
-        try:
-            if target_path.is_file():
-                fp = fingerprint_file(target_path, algorithm=parsed_args.algorithm)
-                print(_format_fingerprint_output(fp))
-                return 0
-            elif target_path.is_dir():
-                if not parsed_args.output:
-                    print(
-                        "Error: --output manifest path is required when target is a directory.",
-                        file=sys.stderr,
-                    )
-                    return 2
-                manifest = create_manifest(
-                    target_path,
-                    algorithm=parsed_args.algorithm,
-                    exclude_paths=[parsed_args.output],
-                )
-                save_path = save_manifest(manifest, parsed_args.output)
-                print(f"Generated integrity manifest ({len(manifest.entries)} entries) -> {save_path}")
-                return 0
-            else:
-                print(f"Error: Target is neither a regular file nor directory: {target_path}", file=sys.stderr)
-                return 3
-        except UnsupportedAlgorithmError as err:
-            print(f"Error: {err}", file=sys.stderr)
-            return 2
-        except FileAccessError as err:
-            print(f"File Error: {err}", file=sys.stderr)
-            return 3
-        except IntegrityError as err:
-            print(f"Integrity Error: {err}", file=sys.stderr)
-            return 2
-
-    if parsed_args.command == "verify":
-        try:
-            report = verify_manifest(
-                root=parsed_args.root,
-                manifest=parsed_args.manifest,
-                ignore_unexpected=parsed_args.ignore_unexpected,
-            )
-            print(_format_verification_output(report))
-            return 0 if report.is_success else 1
-        except (InvalidManifestError, UnsafePathError, UnsupportedAlgorithmError) as err:
-            print(f"Manifest Error: {err}", file=sys.stderr)
-            return 2
-        except FileAccessError as err:
-            print(f"File Error: {err}", file=sys.stderr)
-            return 3
-        except IntegrityError as err:
-            print(f"Verification Error: {err}", file=sys.stderr)
-            return 2
+        return handle_hash(parsed_args)
+    elif parsed_args.command == "fingerprint":
+        return handle_fingerprint(parsed_args)
+    elif parsed_args.command == "verify":
+        return handle_verify(parsed_args)
+    elif parsed_args.command == "merkle":
+        return handle_merkle(parsed_args)
 
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
