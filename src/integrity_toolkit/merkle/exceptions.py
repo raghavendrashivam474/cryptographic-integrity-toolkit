@@ -15,3 +15,7 @@ class InvalidNodeDigestError(MerkleError, ValueError):
 
 class AdapterError(MerkleError, ValueError):
     """Raised when manifest conversion to Merkle leaf bytes fails."""
+
+
+class InvalidProofError(MerkleError, ValueError):
+    """Raised when a Merkle inclusion proof is structurally or mathematically invalid."""
