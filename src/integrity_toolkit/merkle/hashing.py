@@ -1,7 +1,6 @@
 ﻿"""Domain-separated leaf and internal node cryptographic hashing primitives."""
 
 from typing import Union
-
 from integrity_toolkit.crypto import (
     CryptoError,
     get_algorithm_spec,
@@ -17,26 +16,26 @@ LEAF_DOMAIN_PREFIX = b"\x00"
 INTERNAL_DOMAIN_PREFIX = b"\x01"
 
 
-def hash_leaf(data: Union[bytes, bytearray], algorithm: str = "sha256") -> str:
+def hash_leaf(data: Union[bytes, bytearray, memoryview], algorithm: str = "sha256") -> str:
     """Calculate the domain-separated Merkle leaf digest for input data.
 
     Leaf Hash = H(0x00 || data)
 
     Args:
-        data: Raw input bytes or bytearray.
+        data: Raw input bytes, bytearray, or memoryview.
         algorithm: Registered hash algorithm identifier (default: "sha256").
 
     Returns:
         Lowercase hexadecimal digest string.
 
     Raises:
-        InvalidInputError: If data is not bytes or bytearray (from crypto subsystem).
+        InvalidInputError: If data is not bytes, bytearray, or memoryview (from crypto subsystem).
         UnsupportedAlgorithmError: If algorithm is not supported (from crypto subsystem).
     """
-    if not isinstance(data, (bytes, bytearray)):
+    if not isinstance(data, (bytes, bytearray, memoryview)):
         from integrity_toolkit.crypto.exceptions import InvalidInputError
         raise InvalidInputError(
-            f"Leaf payload must be bytes or bytearray, got {type(data).__name__}"
+            f"Leaf payload must be bytes, bytearray, or memoryview, got {type(data).__name__}"
         )
 
     payload = LEAF_DOMAIN_PREFIX + bytes(data)
@@ -77,7 +76,7 @@ def hash_internal(
                 f"(expected {expected_hex_len} characters)"
             )
         try:
-            raw_bytes = bytes.fromhex(digest)
+            bytes.fromhex(digest)
         except ValueError as err:
             raise InvalidNodeDigestError(
                 f"{label} child digest is not valid hexadecimal string: {err}"
@@ -85,6 +84,5 @@ def hash_internal(
 
     left_raw = bytes.fromhex(left_digest)
     right_raw = bytes.fromhex(right_digest)
-
     payload = INTERNAL_DOMAIN_PREFIX + left_raw + right_raw
     return hash_bytes(payload, algorithm=algorithm)

@@ -1,7 +1,10 @@
-"""Handler for 'merkle' CLI commands (build, root, prove, verify-proof)."""
-import sys
+﻿"""Handler for 'merkle' CLI commands (build, root, prove, verify-proof)."""
+
 import json
+import sys
 from pathlib import Path
+
+from integrity_toolkit.crypto import UnsupportedAlgorithmError
 from integrity_toolkit.integrity import (
     FileAccessError,
     IntegrityError,
@@ -10,7 +13,6 @@ from integrity_toolkit.integrity import (
     fingerprint_file,
     load_manifest,
 )
-from integrity_toolkit.crypto import UnsupportedAlgorithmError
 from integrity_toolkit.merkle import (
     InvalidProofError,
     MerkleError,
@@ -20,6 +22,7 @@ from integrity_toolkit.merkle import (
     serialize_proof_to_json,
     verify_manifest_inclusion_proof,
 )
+
 
 def handle_merkle(args) -> int:
     """Dispatch merkle subcommands."""
@@ -40,10 +43,12 @@ def handle_merkle(args) -> int:
         print(f"Error: Unknown merkle subcommand: {merkle_subcommand}", file=sys.stderr)
         return 2
 
+
 def _handle_merkle_build(args) -> int:
     try:
         manifest = load_manifest(args.manifest)
         tree = build_merkle_tree_from_manifest(manifest)
+
         print("========================================")
         print("          MERKLE TREE BUILT             ")
         print("========================================")
@@ -65,6 +70,7 @@ def _handle_merkle_build(args) -> int:
             out_file.parent.mkdir(parents=True, exist_ok=True)
             out_file.write_text(json.dumps(tree_data, indent=2), encoding="utf-8")
             print(f"Saved tree summary -> {out_file}")
+
         return 0
     except FileAccessError as err:
         print(f"File Error: {err}", file=sys.stderr)
@@ -73,10 +79,12 @@ def _handle_merkle_build(args) -> int:
         print(f"Merkle Build Error: {err}", file=sys.stderr)
         return 2
 
+
 def _handle_merkle_root(args) -> int:
     try:
         manifest = load_manifest(args.manifest)
         tree = build_merkle_tree_from_manifest(manifest)
+
         print(f"Merkle Root: {tree.root}")
         print(f"Algorithm  : {tree.algorithm.upper()}")
         print(f"Leaf Count : {tree.leaf_count}")
@@ -87,6 +95,7 @@ def _handle_merkle_root(args) -> int:
     except (InvalidManifestError, UnsupportedAlgorithmError, MerkleError) as err:
         print(f"Merkle Error: {err}", file=sys.stderr)
         return 2
+
 
 def _handle_merkle_prove(args) -> int:
     try:
@@ -106,6 +115,7 @@ def _handle_merkle_prove(args) -> int:
         print(f"Proof Generation Error: {err}", file=sys.stderr)
         return 2
 
+
 def _handle_merkle_verify_proof(args) -> int:
     try:
         proof_path = Path(args.proof)
@@ -123,7 +133,7 @@ def _handle_merkle_verify_proof(args) -> int:
 
         fp = fingerprint_file(data_path, algorithm=proof.algorithm)
 
-        # Derive relative path from args if provided, else use file name
+        # Derive relative path from --relative-path argument if provided, else default to filename
         rel_path = getattr(args, "relative_path", None)
         if not rel_path:
             rel_path = data_path.name

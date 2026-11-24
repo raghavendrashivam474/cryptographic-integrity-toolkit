@@ -1,13 +1,16 @@
-from pathlib import Path
-"""Unified command-line interface entry point for Cryptographic Integrity Toolkit."""
+﻿"""Unified command-line interface entry point for Cryptographic Integrity Toolkit."""
+
 import argparse
 import sys
+from pathlib import Path
+
 import integrity_toolkit
-from integrity_toolkit.integrity import DEFAULT_ALGORITHM
-from integrity_toolkit.cli.handlers.hash_cmd import handle_hash
 from integrity_toolkit.cli.handlers.fingerprint_cmd import handle_fingerprint
-from integrity_toolkit.cli.handlers.verify_cmd import handle_verify
+from integrity_toolkit.cli.handlers.hash_cmd import handle_hash
 from integrity_toolkit.cli.handlers.merkle_cmd import handle_merkle
+from integrity_toolkit.cli.handlers.verify_cmd import handle_verify
+from integrity_toolkit.integrity import DEFAULT_ALGORITHM
+
 
 def build_parser(prog: str = "integrity") -> argparse.ArgumentParser:
     """Construct and configure the command-line argument parser."""
@@ -20,6 +23,7 @@ def build_parser(prog: str = "integrity") -> argparse.ArgumentParser:
         action="version",
         version=f"%(prog)s {integrity_toolkit.__version__}",
     )
+
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
     # Command: hash
@@ -114,10 +118,19 @@ def build_parser(prog: str = "integrity") -> argparse.ArgumentParser:
     mvp_parser.add_argument("proof", type=str, help="Path to proof JSON file")
     mvp_parser.add_argument("--data", type=str, required=True, help="Path to actual target file on disk")
     mvp_parser.add_argument("--root", type=str, required=True, help="Trusted Merkle root hash")
+    mvp_parser.add_argument(
+        "--relative-path",
+        "--relpath",
+        type=str,
+        default=None,
+        help="Explicit manifest relative path of target file (defaults to target filename)",
+    )
 
     return parser
 
+
 create_parser = build_parser
+
 
 def main(args: list[str] | None = None) -> int:
     """CLI entry point. Returns exit code integer."""
@@ -139,6 +152,7 @@ def main(args: list[str] | None = None) -> int:
         return handle_merkle(parsed_args)
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
