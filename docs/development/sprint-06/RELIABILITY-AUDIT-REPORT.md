@@ -1,7 +1,7 @@
 ﻿# Reliability Audit Report
 
 **Project:** Cryptographic Integrity Toolkit (cit)  
-**Milestone:** CL-06 (Product Readiness & Security Audit)  
+**Milestone:** sprint-06 (Product Readiness & Security Audit)  
 **Target Release:** 1.0.0  
 **Date:** 2026-11-24 11:14:35 +05:30  
 
@@ -34,3 +34,4 @@ ormalize_posix_path handles them correctly. However, passing an absolute path ou
 
 - **Streaming Chunking:** hash_stream operates consistently at DEFAULT_CHUNK_SIZE = 65,536 bytes (\text{ KiB}$), maintaining low RAM usage regardless of file size.
 - **Pre/Post Stat Check:** ingerprint_file measures st_size and st_mtime before and after streaming to detect mid-hash file alterations and raise FingerprintError.
+

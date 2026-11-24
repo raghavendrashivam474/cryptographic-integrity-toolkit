@@ -1,7 +1,7 @@
 ﻿# Risk Register
 
 **Project:** Cryptographic Integrity Toolkit (cit)  
-**Milestone:** CL-06 (Product Readiness & Security Audit)  
+**Milestone:** sprint-06 (Product Readiness & Security Audit)  
 **Target Release:** 1.0.0  
 
 ---
@@ -21,3 +21,4 @@
 
 - **No Critical or High Severity Risks Found.**
 - All Medium and Low findings have simple, contract-preserving remediation paths in S06-T03/S06-T04.
+

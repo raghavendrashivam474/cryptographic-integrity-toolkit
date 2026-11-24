@@ -1,7 +1,7 @@
 ﻿# Remediation Plan & Architecture Approval
 
 **Project:** Cryptographic Integrity Toolkit (cit)  
-**Milestone:** CL-06 (Product Readiness & Security Audit)  
+**Milestone:** sprint-06 (Product Readiness & Security Audit)  
 **Target Release:** 1.0.0  
 **Status:** Approved for S06-T04 Implementation  
 
@@ -56,3 +56,4 @@ After S06-T04 remediation:
 2. Execute new targeted regression tests.
 3. Verify CLI help output and exit codes.
 4. Execute examples/cli_end_to_end_demo.py.
+
