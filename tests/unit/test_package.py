@@ -16,4 +16,4 @@ def test_package_import():
 
 def test_package_version():
     """Test package version string matches release target."""
-    assert integrity_toolkit.__version__ == "0.0.1"
+    assert integrity_toolkit.__version__ == "1.0.0"

@@ -16,7 +16,7 @@ def test_cli_version_flag(capsys):
         main(["--version"])
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
-    assert "integrity 0.0.1" in captured.out
+    assert "integrity 1.0.0" in captured.out
 
 
 def test_cli_help_flag(capsys):
